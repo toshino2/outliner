@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+   <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+<style>
+* {vertical-align: top;}
+.ui-state-highlight{
+  background: #eee;
+}
+.ui-sortable-helper{
+  background: #eee;
+}
+.ui-sortable-handle::before{
+  content:"↕";
+  background: #6bb79c;
+  display:inline-block;
+  width: 20px;
+  text-align: center;
+  border-radius: 4px;
+  color: #fff;
+  margin-right: 5px;
+  cursor: move;
+}
+.ui-sortable-handle:hover{
+  cursor: move;
+  box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.27);
+}
+.ui-sortable-handle span{
+  min-width: 100px;
+  display: inline-block;
+  cursor: text;
+}
+.ui-sortable-handle span:focus{
+  background: #f5f9eb;
+}
+.sortable li{
+  margin-bottom: 3px;
+}
+*:visible{
+  background: red;
+}
+
+.updown{
+  height: 0;
+  border-bottom: 2px solid #6cb69c;
+  margin-bottom: 5px;
+  overflow: hidden;
+}
+.hide{
+  background: #a8b1ae;
+  border-radius: 100%;
+  display: none;
+  font-size: 10px;
+  color: #fff;
+  border: none;
+  width: 20px;
+  height: 20px;
+}
+.re{
+  transform: rotate(180deg);
+}
+</style>
+
+<script>
+
+
+function save(){
+  var savearea = $("#savearea").html();
+  localStorage.setItem("data", savearea);
+  //console.log(savearea);
+}
+
+function reset(){
+  localStorage.removeItem("data");
+  location.reload();
+}
+
+ function sortable(){
+   jQuery( '.sortable' ) . sortable( {
+           cursor: 'move',
+           cancel: 'span',
+           opacity: 0.7,
+           placeholder: "ui-state-highlight",
+           revert:20,
+           tolerance:"pointer",
+           helper:"Function"
+   } );
+   save();
+ }
+
+ function load(){
+   var savearea = localStorage.getItem("data");
+   if(!savearea == ""){
+     $("#savearea").html(savearea);
+   }
+   //console.log(savearea);
+ }
+//アコーディオン
+function slides(){
+  $(document).on("click",".hide",function(){
+    $(this).next().toggleClass("updown");
+    $(this).toggleClass("re");
+  });
+}
+
+function add(){
+  $(document).on("click",".add",function(){
+    $("ul.addarea").append("<li class='ui-sortable-handle focusWrap'><span contenteditable='' class='focus'></span><button class='hide' >▲</button></li>");
+  });
+}
+
+var content;
+ $(document).ready(function() {
+     var saves = function() {
+         if (content != $('#savearea').text()) {
+             if (content != null) {
+                save();
+             }
+             content = $('#savearea').text();
+         }
+         $("ul .hide").css("display","none");
+         $("ul").prev(".hide").css("display","inline-block");
+     };
+     setInterval(saves, 300);
+ });
+
+
+  jQuery( function() {
+      load();
+      sortable();
+      slides();
+      add();
+
+      $("[contenteditable]").focus(function(){
+       $( ".sortable" ).sortable( "disable" );
+     }).blur(function(){
+       $( ".sortable" ).sortable( "enable" );
+     });
+
+      jQuery(document).on('sortstop','.sortable',function(){
+          //並び替え時の動作
+          //$(":focus").blur();
+      });
+
+//フォーカスを外す
+$(".ui-sortable-handle").on('mousedown',function(){
+  $(".ui-sortable-handle span").blur()
+}
+);
+
+//keyboard
+window.addEventListener("keydown", handleKeydown);
+
+
+//tab無効
+document.onkeydown = cancel_tab;
+
+function cancel_tab(e) {
+if(e == undefined){
+if(event.keyCode==9){
+event.returnValue=false;
+return false;
+}
+} else {
+if(e.which==9)
+return false;
+}
+}
+
+
+function handleKeydown(event){
+// キーコード(どのキーが押されたか)を取得
+var keyCode = event.keyCode;
+// 条件文で制御する
+if  (keyCode == 38) {//上キー
+$("[contenteditable]:focus").parent().prev("li").children("span").focus();
+} else if  (keyCode == 40) {//下キー
+$("[contenteditable]:focus").parent().next("li").children("span").focus();
+}else if  (keyCode == 8) {//デリートキー
+  var del = $("[contenteditable]:focus").html();
+  del = del.replace( /<br>/g , "" ) ;
+  if(del == "" ){
+
+    var delarea = $("[contenteditable]:focus").parent("li");
+    $("[contenteditable]:focus").parent().prev("li").children("span").focus();
+    delarea.remove();
+
+  }
+}else if (event.shiftKey && keyCode == 13){//シフト ＋ エンター
+    $(".focus").removeClass("focus");
+    $("[contenteditable]:focus").parent("li")
+    .after("<li class='ui-sortable-handle'><span class='focus' contenteditable=''></span><button class='hide'>▲</button></li>");
+    $(".focus").focus();
+    event.returnValue=false;
+    return false;
+
+}else if (event.shiftKey && keyCode == 9) {//シフト ＋ タブ
+  $(".focus,.focusWrap").removeClass("focus").removeClass("focusWrap");
+      var listcontent = $("[contenteditable]:focus").parent("li").html();
+      $("[contenteditable]:focus").parent("li").parent("ul").parent("li").after("<li class='ui-sortable-handle focusWrap'>"+listcontent+"</li>");
+      var item =  $("[contenteditable]:focus").parent("li").parent().parent("li").length;
+
+    if(!item == 0){
+        $("[contenteditable]:focus").parent().remove();
+        $("ul:empty").remove();
+        $(".focusWrap > span").focus();
+      }
+      save();
+    }else if (keyCode == 9 ) {//タブ
+$(".focus,.focusWrap").removeClass("focus").removeClass("focusWrap");
+var listcontent = $("[contenteditable]:focus").parent("li").html();
+var item =  $("[contenteditable]:focus").parent().prev("li").html();
+if($("[contenteditable]:focus").parent().prev("li").children("ul").length){
+
+  $("[contenteditable]:focus").parent().prev("li").children("ul").append("<li class='ui-sortable-handle focusWrap'>"+listcontent+"</li>");
+  save();
+  if(!item == ""){
+    $("[contenteditable]:focus").parent().remove();
+    $(".focusWrap > span").focus();
+
+  }
+
+sortable();
+
+    }else{
+
+      $("[contenteditable]:focus").parent().prev("li").append("<ul class='sortable'><li class='ui-sortable-handle focusWrap'>"+listcontent+"</li></ul>");
+      //console.log(item);
+      if(!item == ""){
+        $("[contenteditable]:focus").parent().remove();
+        $(".focusWrap > span").focus();
+      }
+
+      sortable();
+
+    }
+
+}//tab
+
+
+}
+
+
+} );
+
+
+
+
+  </script>
+</script>
+  <title>mono outliner α</title>
+</head>
+<body>
+<h1>mono outliner α</h1>
+<div id="savearea">
+  <ul class='sortable addarea'  >
+    <li ><span contenteditable="">親リスト内容</span><button class='hide'>▲</button>
+      <ul class='sortable'>
+        <li ><span contenteditable="">リスト内容</span><button class='hide'>▲</button></li>
+      </ul>
+    </li>
+  </ul>
+</div>
+<button class="add">追加</button>
+<footer>
+  <p><button class="reset" onclick="reset();">初期化</button></p>
+</footer>
+
+</body>
+</html>
